@@ -1,0 +1,6 @@
+@ScanBuddy_HostAddress = http://localhost:5234
+
+GET {{ScanBuddy_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
