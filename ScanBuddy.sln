@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35931.197 d17.13
+VisualStudioVersion = 17.13.35931.197
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScanBuddy", "ScanBuddy\ScanBuddy.csproj", "{3A045038-8A5E-4662-A14F-71F6B9DF4468}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassLibrary.ScanBuddy", "ClassLibrary.ScanBuddy\ClassLibrary.ScanBuddy.csproj", "{34AB98EC-8730-488C-B23F-57B443551FAF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{3A045038-8A5E-4662-A14F-71F6B9DF4468}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3A045038-8A5E-4662-A14F-71F6B9DF4468}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3A045038-8A5E-4662-A14F-71F6B9DF4468}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34AB98EC-8730-488C-B23F-57B443551FAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34AB98EC-8730-488C-B23F-57B443551FAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34AB98EC-8730-488C-B23F-57B443551FAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34AB98EC-8730-488C-B23F-57B443551FAF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
