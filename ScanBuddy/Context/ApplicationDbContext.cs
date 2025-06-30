@@ -10,6 +10,10 @@ namespace ScanBuddy.Context
         //Creates a table in the SQL databse for ApplicationUser model
         public DbSet<ApplicationUser> Users { get; set; }
 
+        //At design time, EF Core uses the parameterless constructor, which then calls your OnConfiguring() method to:Load your appsettings.json,Read the connection string,Configure SQL Server
+        public ApplicationDbContext() { }
+
+
 
         //This constructor accepts DbContextOptions which are used to configure the database connection and other options via dependency injection
 
