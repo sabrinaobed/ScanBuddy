@@ -45,7 +45,7 @@ namespace ScanBuddy.Services
             if(existingUser != null)
             {
                 //optional: you could return a generic message to avoid enumeration
-                return "Invalid credentials.Try again valid details."
+                return "Invalid credentials.Try again valid details.";
             }
 
             //4.Check password match
@@ -95,6 +95,70 @@ namespace ScanBuddy.Services
         }
 
 
+        public async Task<string> LoginAsync(UserLoginDTO dto)
+        {
+            //1. check required fields
+            if(string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
+            {
+                return "Email and password are required.";
+            }
+
+            //2.Find user by email (case-insenstive)
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
+            if(user == null)
+            {
+                //generic message to avoid account enumeration
+                return "Invalid email or password.";
+            }
+
+            //3.check if account is locked
+            if(user.LockedUntil.HasValue && user.LockedUntil > DateTime.UtcNow)
+            {
+                return $"Account is locked.Try again at {user.LockedUntil.Value}";
+            }
+
+            //4.Check password usimh BCrypt
+            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
+            if(!isPasswordValid)
+            {
+                user.FailedLoginAttempts++;
+
+                //optional: lock account after 5 failed attempts for 1 minute
+                if (user.FailedLoginAttempts >= 5)
+                {
+                    user.LockedUntil = DateTime.UtcNow.AddSeconds(60);
+                    await _context.SaveChangesAsync();
+                    return "Too many failed attempts.Account locked for 60 seconds.";
+                }
+                await _context.SaveChangesAsync();
+                return "Invalif email or password.";
+            }
+
+            //5.Reset failed login attempts and lockout
+            user.FailedLoginAttempts = 0;
+            user.LockedUntil = null;
+            await _context.SaveChangesAsync();
+
+
+            //6.Generate a random OTP for MFA
+            var otpCode = new Random().Next(100000, 999999).ToString();
+
+            //7.Store the OTP temporarily example in memory or DB
+            //for now assume you add a property OTP and Expiry in ApplicationUser model
+            user.MfaCode = otpCode;
+            user.MfaCodeExpiry = DateTime.UtcNow.AddMinutes(2); // valif for a minute
+            await _context.SaveChangesAsync();
+
+            //8.Send the OTP to user's email(you will implement actual email services next)
+            return $"MFA code sent to {user.Email}";
+        }
+
+            
+
     }
+
+
+
 }
+
 

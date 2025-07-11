@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ClassLibrary.ScanBuddy.Backend.Interfaces
 {
-    internal interface IAuthService
+    public interface IAuthService
     {
         Task<string> RegisterAsync(UserRegistrationDTO dto);
         Task<string>LoginAsync(UserLoginDTO dto);

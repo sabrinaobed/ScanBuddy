@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿
+using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace ScanBuddy.Models
 {
@@ -27,6 +29,8 @@ namespace ScanBuddy.Models
 
         public DateTime? LockedUntil { get; set; } //the account locked until this time after failed login  attempts, used to temporarliy block users.
 
+        public string? MfaCode { get; set; } //one-time code for MFA verfication, sent to user's email
 
+        public DateTime? MfaCodeExpiry { get; set; } //expiration time for the MFA code 
     }
 }
