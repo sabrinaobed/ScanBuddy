@@ -153,7 +153,54 @@ namespace ScanBuddy.Services
             return $"MFA code sent to {user.Email}";
         }
 
-            
+
+        public async Task<string> VerifyOtpAsync(UserOtpDTO dto)
+        {
+            //1. Validate input fields
+            if(string.IsNullOrWhiteSpace(dto.Email) ||  string.IsNullOrWhiteSpace(dto.OtpCode))
+            {
+                return "Email and OTP code are required";
+            }
+
+            //2.Find user by email (case-insensitive)
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
+
+            if(user == null)
+            {
+                return "Invalid email or OTP code";
+            }
+
+            //3.Check if MFA is enabled
+            if(!user.isMfaEnabled)
+            {
+                return "MFA is not enabled for this account";
+            }
+
+            //4.Check if OTP code matches and has not expired
+            if(user.MfaCode != dto.OtpCode)
+            {
+                return "Incorrect OTP code.";   
+            }
+
+            if(!user.MfaCodeExpiry.HasValue || user.MfaCodeExpiry < DateTime.UtcNow)
+            {
+                return "OTP code has expired. Please request a new one.";
+            }
+
+            //5.OTP is valif -> clear the OTP and expiry from DB
+            user.MfaCode = null;
+            user.MfaCodeExpiry = null;
+            await _context.SaveChangesAsync();
+
+            //6.Generate JWT token
+            string token = "JWT-TOKEN -GOES-HERE";
+
+
+            //7. Return success message with token
+            return token;
+        }
+
 
     }
 
