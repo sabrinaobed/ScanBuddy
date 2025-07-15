@@ -4,6 +4,7 @@ using ScanBuddy.JWTConfiguration;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using ScanBuddy.Context;
+using Microsoft.OpenApi.Models;
 
 
 
@@ -21,14 +22,46 @@ namespace ScanBuddy
 
             // Add services to the container.
 
-
             // Register EF Core with SQL server
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            builder.Services.AddOpenApi();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen(options =>
+            {
+                options.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "ScanBuddy API",
+                    Version = "v1"
+                });
+
+                // Add JWT Authentication to Swagger
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme (Example: 'Bearer eyJhbGciOi...')",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                        {
+                            new OpenApiSecurityScheme
+                            {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id = "Bearer"
+                                }
+                            },
+                            new string[] {}
+                        }
+                });
+            });
 
             // Bind JwtSettings from appsettings.json
             builder.Services.Configure<JwtSettings>(
@@ -63,14 +96,17 @@ namespace ScanBuddy
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.MapOpenApi();
+                app.UseSwagger(); // Ensure Swashbuckle.AspNetCore package is installed
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ScanBuddy API v1");
+                });
             }
 
             app.UseHttpsRedirection();
             app.UseAuthentication();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
