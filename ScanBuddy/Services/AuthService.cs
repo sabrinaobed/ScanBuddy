@@ -10,7 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using ScanBuddy.JWTConfiguration;   // <- wherever JwtSettings.cs lives
+using ScanBuddy.JWTConfiguration;   
 
 
 
@@ -21,20 +21,22 @@ namespace ScanBuddy.Services
         //depenendency injection of the ApplicationDbContext to interact with the database
         private readonly ApplicationDbContext _context;
         private readonly JwtSettings _jwtSettings;
+        private readonly IEmailService _emailService;
 
 
         //Constructor that accepts ApplicationDbContext as a parameter
-        public AuthService(ApplicationDbContext context,IOptions<JwtSettings> jwtoptions)
+        public AuthService(ApplicationDbContext context, IOptions<JwtSettings> jwtoptions, IEmailService emailService)
         {
             _context = context;
             _jwtSettings = jwtoptions.Value; //binds the JwtSettings from appsettings.json,contains secret key and issuer.
+            _emailService = emailService;
         }
 
         //Method to register a new user
         public async Task<string> RegisterAsync(UserRegistrationDTO dto)
         {
             //1. input validation  - required fields check
-            if(string.IsNullOrWhiteSpace(dto.FullName) ||
+            if (string.IsNullOrWhiteSpace(dto.FullName) ||
                string.IsNullOrWhiteSpace(dto.Email) ||
                string.IsNullOrWhiteSpace(dto.Password) ||
                 string.IsNullOrWhiteSpace(dto.ConfirmPassword))
@@ -44,7 +46,7 @@ namespace ScanBuddy.Services
 
 
             //2.Validate email format
-            if(!new EmailAddressAttribute().IsValid(dto.Email))
+            if (!new EmailAddressAttribute().IsValid(dto.Email))
             {
                 return "Invalid email format.";
             }
@@ -52,16 +54,16 @@ namespace ScanBuddy.Services
             //3.Check if email is already registered (case-insensitive)
             var existingUser = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
-            if(existingUser != null)
+            if (existingUser != null)
             {
                 //optional: you could return a generic message to avoid enumeration
                 return "Invalid credentials.Try again valid details.";
             }
 
             //4.Check password match
-            if(dto.Password != dto.ConfirmPassword)
+            if (dto.Password != dto.ConfirmPassword)
             {
-                return "Passwords do not match.";   
+                return "Passwords do not match.";
             }
 
             //5.Validate password strength(OWASP recommendation: length + complexity)
@@ -108,28 +110,28 @@ namespace ScanBuddy.Services
         public async Task<string> LoginAsync(UserLoginDTO dto)
         {
             //1. check required fields
-            if(string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
+            if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
             {
                 return "Email and password are required.";
             }
 
             //2.Find user by email (case-insenstive)
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
-            if(user == null)
+            if (user == null)
             {
                 //generic message to avoid account enumeration
                 return "Invalid email or password.";
             }
 
             //3.check if account is locked
-            if(user.LockedUntil.HasValue && user.LockedUntil > DateTime.UtcNow)
+            if (user.LockedUntil.HasValue && user.LockedUntil > DateTime.UtcNow)
             {
                 return $"Account is locked.Try again at {user.LockedUntil.Value}";
             }
 
             //4.Check password usimh BCrypt
             bool isPasswordValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
-            if(!isPasswordValid)
+            if (!isPasswordValid)
             {
                 user.FailedLoginAttempts++;
 
@@ -160,14 +162,17 @@ namespace ScanBuddy.Services
             await _context.SaveChangesAsync();
 
             //8.Send the OTP to user's email(you will implement actual email services next)
-            return $"MFA code sent to {user.Email}";
+            await _emailService.SendEmailAsync(user.Email, "Your ScanBuddy MFA Code", $"Your OTP code is: {otpCode}.");
+
+            //9.Return success message with MFA instructions
+            return "MFA code sent to  {user.Email}. Please verify to complete login.";
         }
 
 
         public async Task<string> VerifyOtpAsync(UserOtpDTO dto)
         {
             //1. Validate input fields
-            if(string.IsNullOrWhiteSpace(dto.Email) ||  string.IsNullOrWhiteSpace(dto.OtpCode))
+            if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.OtpCode))
             {
                 return "Email and OTP code are required";
             }
@@ -176,24 +181,24 @@ namespace ScanBuddy.Services
             var user = await _context.Users
                 .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
 
-            if(user == null)
+            if (user == null)
             {
                 return "Invalid email or OTP code";
             }
 
             //3.Check if MFA is enabled
-            if(!user.isMfaEnabled)
+            if (!user.isMfaEnabled)
             {
                 return "MFA is not enabled for this account";
             }
 
             //4.Check if OTP code matches and has not expired
-            if(user.MfaCode != dto.OtpCode)
+            if (user.MfaCode != dto.OtpCode)
             {
-                return "Incorrect OTP code.";   
+                return "Incorrect OTP code.";
             }
 
-            if(!user.MfaCodeExpiry.HasValue || user.MfaCodeExpiry < DateTime.UtcNow)
+            if (!user.MfaCodeExpiry.HasValue || user.MfaCodeExpiry < DateTime.UtcNow)
             {
                 return "OTP code has expired. Please request a new one.";
             }
@@ -218,7 +223,7 @@ namespace ScanBuddy.Services
             //Create signing credentials
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
-            var creds = new SigningCredentials(key,SecurityAlgorithms.HmacSha256);
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             //2.Create the list of claims(data baked into token)
             var claims = new[]
@@ -230,7 +235,7 @@ namespace ScanBuddy.Services
             };
 
             //3.Build the token object
-            var token = new JwtSecurityToken (
+            var token = new JwtSecurityToken(
                  issuer: _jwtSettings.Issuer,
         audience: _jwtSettings.Audience,
         claims: claims,
@@ -242,10 +247,57 @@ namespace ScanBuddy.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        public async Task<string> ResendOtpAysnc(string email)
+        {
+            // 1. Validate input
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return "Email is required.";
+            }
+
+            // 2. Find the user by email
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == email.ToLower());
+            if (user == null)
+            {
+                return "Invalid email. User not found.";
+            }
+
+            // 3. Check if MFA is enabled
+            if (!user.isMfaEnabled)
+            {
+                return "MFA is not enabled for this account.";
+            }
+
+            // 4. Generate a new OTP
+            var newOtp = new Random().Next(100000, 999999).ToString();
+
+            // 5. Store OTP and expiry
+            user.MfaCode = newOtp;
+            user.MfaCodeExpiry = DateTime.UtcNow.AddMinutes(2);
+            await _context.SaveChangesAsync();
+
+            // 6. Send OTP via email
+            await _emailService.SendEmailAsync(
+                user.Email,
+                "Your new ScanBuddy OTP Code",
+                $"Your new OTP code is: {newOtp}. It is valid for 2 minutes."
+            );
+
+            return "A new OTP code has been sent to your email.";
+        }
+
+        public async Task<bool> HasVerifiedOtpAsync(string email)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null)
+                throw new Exception("User not found.");
+
+            return user.HasVerifiedOtp;
+        }
+
+
 
     }
-
-
 
 }
 

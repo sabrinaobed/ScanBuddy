@@ -16,9 +16,8 @@ namespace ScanBuddy.Controllers
             _authService = authService;
         }
 
-        /// <summary>
         /// Registers a new user.
-        /// </summary>
+      
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] UserRegistrationDTO dto)
         {
@@ -26,9 +25,9 @@ namespace ScanBuddy.Controllers
             return Ok(new { message = result });
         }
 
-        /// <summary>
+  
         /// Initiates login and sends MFA code if credentials are valid.
-        /// </summary>
+      
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginDTO dto)
         {
@@ -36,14 +35,32 @@ namespace ScanBuddy.Controllers
             return Ok(new { message = result });
         }
 
-        /// <summary>
+        
         /// Verifies the MFA code and returns a JWT token if successful.
-        /// </summary>
+       
         [HttpPost("verify-otp")]
         public async Task<IActionResult> VerifyOtp([FromBody] UserOtpDTO dto)
         {
             var result = await _authService.VerifyOtpAsync(dto);
             return Ok(new { token = result });
         }
+
+        ///Resends a new MFA code to the users email
+        [HttpPost("resend-otp")]
+        public async Task<IActionResult> ResendOtp([FromBody] string email)
+        {
+            var result = await _authService.ResendOtpAysnc(email);
+            return Ok(new { message = result });
+        }
+
+        //HasOtp verified
+        [HttpGet("has-verified-otp")]
+        public async Task<IActionResult> HasVerifiedOtp([FromQuery] string email)
+        {
+            var isVerified = await _authService.HasVerifiedOtpAsync(email);
+            return Ok(new { IsVerified = isVerified });
+        }
+
+
     }
 }

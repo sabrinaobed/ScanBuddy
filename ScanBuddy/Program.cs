@@ -26,6 +26,8 @@ namespace ScanBuddy
             // Add services to the container.
             // Register services
             builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
+
 
 
             // Register EF Core with SQL server
@@ -96,6 +98,11 @@ namespace ScanBuddy
                         Encoding.UTF8.GetBytes(jwtSettings.SecretKey))
                 };
             });
+
+            // Bind SmtpSettings from appsettings.json
+            builder.Services.Configure<SmtpSettings>(
+                builder.Configuration.GetSection("Smtp"));
+
 
             var app = builder.Build();
 
