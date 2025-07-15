@@ -5,6 +5,13 @@ using ScanBuddy.Context;
 using BCrypt.Net;
 using System.ComponentModel.DataAnnotations;
 using ScanBuddy.Models;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using ScanBuddy.JWTConfiguration;   // <- wherever JwtSettings.cs lives
+
 
 
 namespace ScanBuddy.Services
@@ -13,11 +20,14 @@ namespace ScanBuddy.Services
     {
         //depenendency injection of the ApplicationDbContext to interact with the database
         private readonly ApplicationDbContext _context;
+        private readonly JwtSettings _jwtSettings;
+
 
         //Constructor that accepts ApplicationDbContext as a parameter
-        public AuthService(ApplicationDbContext context)
+        public AuthService(ApplicationDbContext context,IOptions<JwtSettings> jwtoptions)
         {
             _context = context;
+            _jwtSettings = jwtoptions.Value; //binds the JwtSettings from appsettings.json,contains secret key and issuer.
         }
 
         //Method to register a new user
@@ -194,11 +204,42 @@ namespace ScanBuddy.Services
             await _context.SaveChangesAsync();
 
             //6.Generate JWT token
-            string token = "JWT-TOKEN -GOES-HERE";
+            string token = GenerateJwtToken(user);
 
 
             //7. Return success message with token
             return token;
+        }
+
+
+        //Creates a JWT token containing user information
+        private string GenerateJwtToken(ApplicationUser user)
+        {
+            //Create signing credentials
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+            var creds = new SigningCredentials(key,SecurityAlgorithms.HmacSha256);
+
+            //2.Create the list of claims(data baked into token)
+            var claims = new[]
+            {
+                 new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
+        new Claim(ClaimTypes.Email,          user.Email),
+        new Claim(ClaimTypes.Name,           user.FullName),
+        new Claim(ClaimTypes.Role,           user.Role)
+            };
+
+            //3.Build the token object
+            var token = new JwtSecurityToken (
+                 issuer: _jwtSettings.Issuer,
+        audience: _jwtSettings.Audience,
+        claims: claims,
+        expires: DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryMinutes),
+        signingCredentials: creds);
+
+
+            //4.Generate the token string
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
 
