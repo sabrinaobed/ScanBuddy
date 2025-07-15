@@ -5,6 +5,12 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using ScanBuddy.Context;
 
+
+
+
+
+
+
 namespace ScanBuddy
 {
     public class Program
