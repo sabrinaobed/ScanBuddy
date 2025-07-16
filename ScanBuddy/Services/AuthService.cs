@@ -10,7 +10,9 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using ScanBuddy.JWTConfiguration;   // <- wherever JwtSettings.cs lives
+using ScanBuddy.JWTConfiguration;
+using Org.BouncyCastle.Crypto.Fpe; 
+
 
 
 
@@ -21,13 +23,14 @@ namespace ScanBuddy.Services
         //depenendency injection of the ApplicationDbContext to interact with the database
         private readonly ApplicationDbContext _context;
         private readonly JwtSettings _jwtSettings;
-
+       
 
         //Constructor that accepts ApplicationDbContext as a parameter
         public AuthService(ApplicationDbContext context,IOptions<JwtSettings> jwtoptions)
         {
             _context = context;
             _jwtSettings = jwtoptions.Value; //binds the JwtSettings from appsettings.json,contains secret key and issuer.
+          
         }
 
         //Method to register a new user
@@ -79,24 +82,45 @@ namespace ScanBuddy.Services
             //6. Hash the password using BCrypt(never store plain passowrd)
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
-            //7.Create a new ApplicationUser object
+
+            //7.Generate OTP for email verification.
+            var otp = new Random().Next(100000, 999999).ToString();
+            var otpExpiry = DateTime.UtcNow.AddMinutes(5); //valid for 5 minutes
+
+            //8.Create a new ApplicationUser object
             var newUser = new ApplicationUser
             {
                 FullName = dto.FullName,
                 Email = dto.Email,
                 PasswordHash = hashedPassword,
                 Role = dto.Role ?? "Employee", //default role if not provided
-                isMfaEnabled = false, //default MFA setting
+                enableMFA = dto.EnableMfa, //default MFA setting
+                AccountType = dto.AccountType ?? "Personal", //default account type if not provided
                 FailedLoginAttempts = 0, //default failed attempts
                 LockedUntil = null, //default locked status
-                CreatedAt = DateTime.UtcNow //set creation time to now,audit creation timestamp
+                CreatedAt = DateTime.UtcNow, //set creation time to now,audit creation timestamp
+                MfaCode = otp, //set the OTP code
+                MfaCodeExpiry = otpExpiry, //set the OTP expiry time
+                HasVerifiedOtp = false //default to false, user needs to verify OTP after registration
+
 
             };
 
 
-            //8.Add user to the database and save
+            //9.Add user to the database and save
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
+
+
+            //10.Sed OTP
+            string subject = "ScanBuddy Registration -Verify Your Email";
+            string body = $"Hello! {newUser.FullName},\n\n"+
+                $"Your OTP code is: {otp}\n\n" +
+                $"It is valid for 5 minutes.\n\n" +
+                $"Thanks,\nScanBuddy Team";
+
+
+           // await _emailService.SendEmailAsync(newUser.Email, subject, body);
 
 
             //9.Return success message(dont return sensitive data)
@@ -182,7 +206,7 @@ namespace ScanBuddy.Services
             }
 
             //3.Check if MFA is enabled
-            if(!user.isMfaEnabled)
+            if(!user.enableMFA)
             {
                 return "MFA is not enabled for this account";
             }
