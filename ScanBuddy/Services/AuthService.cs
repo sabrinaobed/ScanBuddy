@@ -83,7 +83,7 @@ namespace ScanBuddy.Services
             var hashedPassword = BCrypt.Net.BCrypt.HashPassword(dto.Password);
 
 
-            //7.Generate OTP for email verification.
+            //7.Generate OTP for email verification...
             var otp = new Random().Next(100000, 999999).ToString();
             var otpExpiry = DateTime.UtcNow.AddMinutes(5); //valid for 5 minutes
 
