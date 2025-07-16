@@ -32,5 +32,7 @@ namespace ScanBuddy.Models
         public string? MfaCode { get; set; } //one-time code for MFA verfication, sent to user's email
 
         public DateTime? MfaCodeExpiry { get; set; } //expiration time for the MFA code 
+        public bool HasVerifiedOtp { get; set; } = false; // Indicates if the user has verified their MFA code, used to check if the user has completed the MFA setup process
     }
+
 }
