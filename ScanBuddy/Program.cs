@@ -4,6 +4,10 @@ using ScanBuddy.JWTConfiguration;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using ScanBuddy.Context;
+using Microsoft.OpenApi.Models;
+using ClassLibrary.ScanBuddy.Backend.Interfaces;
+using ScanBuddy.Services;
+
 
 
 
@@ -20,6 +24,10 @@ namespace ScanBuddy
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
+            // Register services
+            builder.Services.AddScoped<IAuthService, AuthService>();
+            builder.Services.AddScoped<IEmailService, EmailService>();
+
 
 
             // Register EF Core with SQL server
@@ -28,7 +36,40 @@ namespace ScanBuddy
 
             builder.Services.AddControllers();
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            builder.Services.AddOpenApi();
+            builder.Services.AddEndpointsApiExplorer();
+            builder.Services.AddSwaggerGen(options =>
+            {
+                options.SwaggerDoc("v1", new OpenApiInfo
+                {
+                    Title = "ScanBuddy API",
+                    Version = "v1"
+                });
+
+                // Add JWT Authentication to Swagger
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme (Example: 'Bearer eyJhbGciOi...')",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer"
+                });
+
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                        {
+                            new OpenApiSecurityScheme
+                            {
+                                Reference = new OpenApiReference
+                                {
+                                    Type = ReferenceType.SecurityScheme,
+                                    Id = "Bearer"
+                                }
+                            },
+                            new string[] {}
+                        }
+                });
+            });
 
             // Bind JwtSettings from appsettings.json
             builder.Services.Configure<JwtSettings>(
@@ -58,19 +99,25 @@ namespace ScanBuddy
                 };
             });
 
+            // Bind SmtpSettings from appsettings.json
+            builder.Services.Configure<SmtpSettings>(
+                builder.Configuration.GetSection("Smtp"));
+
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
             {
-                app.MapOpenApi();
-            }
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "ScanBuddy API v1");
+            });
+
 
             app.UseHttpsRedirection();
             app.UseAuthentication();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 

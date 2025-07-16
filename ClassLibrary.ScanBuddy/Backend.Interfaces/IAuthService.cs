@@ -13,5 +13,11 @@ namespace ClassLibrary.ScanBuddy.Backend.Interfaces
         Task<string>LoginAsync(UserLoginDTO dto);
 
         Task<string> VerifyOtpAsync(UserOtpDTO dto);
+
+        Task<string> ResendOtpAysnc(string email);
+
+        Task<bool> HasVerifiedOtpAsync(string email);
+
+
     }
 }

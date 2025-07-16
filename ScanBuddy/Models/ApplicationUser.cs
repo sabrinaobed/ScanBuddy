@@ -36,4 +36,5 @@ namespace ScanBuddy.Models
 
         public string AccountType { get; set; } = "Personal"; //to select accoutn type
     }
+
 }
