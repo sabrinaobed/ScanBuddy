@@ -23,14 +23,16 @@ namespace ScanBuddy.Services
         //depenendency injection of the ApplicationDbContext to interact with the database
         private readonly ApplicationDbContext _context;
         private readonly JwtSettings _jwtSettings;
-       
+        private readonly IEmailService _emailService; //dependency injection for email service to send OTPs and notifications
+
 
         //Constructor that accepts ApplicationDbContext as a parameter
         public AuthService(ApplicationDbContext context, IOptions<JwtSettings> jwtoptions, IEmailService emailService)
         {
             _context = context;
             _jwtSettings = jwtoptions.Value; //binds the JwtSettings from appsettings.json,contains secret key and issuer.
-          
+            _emailService = emailService; //injects the email service to send OTPs and notifications
+
         }
 
         //Method to register a new user
@@ -184,7 +186,7 @@ namespace ScanBuddy.Services
             await _context.SaveChangesAsync();
 
             //8.Send the OTP to user's email(you will implement actual email services next)
-            await _emailService.SendEmailAsync(user.Email, "Your ScanBuddy MFA Code", $"Your OTP code is: {otpCode}.");
+            //await _emailService.SendEmailAsync(user.Email, "Your ScanBuddy MFA Code", $"Your OTP code is: {otpCode}.");
 
             //9.Return success message with MFA instructions
             return "MFA code sent to  {user.Email}. Please verify to complete login.";
@@ -285,7 +287,7 @@ namespace ScanBuddy.Services
             }
 
             // 3. Check if MFA is enabled
-            if (!user.isMfaEnabled)
+            if (!user.enableMFA)
             {
                 return "MFA is not enabled for this account.";
             }
