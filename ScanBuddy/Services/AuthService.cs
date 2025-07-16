@@ -87,7 +87,7 @@ namespace ScanBuddy.Services
             var otp = new Random().Next(100000, 999999).ToString();
             var otpExpiry = DateTime.UtcNow.AddMinutes(5); //valid for 5 minutes
 
-            //8.Create a new ApplicationUser object
+            //8.Create a new ApplicationUser object.
             var newUser = new ApplicationUser
             {
                 FullName = dto.FullName,
