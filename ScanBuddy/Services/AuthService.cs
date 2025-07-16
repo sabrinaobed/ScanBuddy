@@ -44,7 +44,7 @@ namespace ScanBuddy.Services
                string.IsNullOrWhiteSpace(dto.Password) ||
                 string.IsNullOrWhiteSpace(dto.ConfirmPassword))
             {
-                return "All field are required.";
+                return "All fields are required.";
             }
 
 
@@ -114,9 +114,9 @@ namespace ScanBuddy.Services
             await _context.SaveChangesAsync();
 
 
-            //10.Sed OTP
+            //10.Send OTP
             string subject = "ScanBuddy Registration -Verify Your Email";
-            string body = $"Hello! {newUser.FullName},\n\n"+
+            string body = $"Hello {newUser.FullName}!,\n\n"+
                 $"Your OTP code is: {otp}\n\n" +
                 $"It is valid for 5 minutes.\n\n" +
                 $"Thanks,\nScanBuddy Team";
@@ -129,6 +129,20 @@ namespace ScanBuddy.Services
             return " User regisetered successfully! Now you login to your account.";
 
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         public async Task<string> LoginAsync(UserLoginDTO dto)
@@ -189,8 +203,14 @@ namespace ScanBuddy.Services
             await _emailService.SendEmailAsync(user.Email, "Your ScanBuddy MFA Code", $"Your OTP code is: {otpCode}.");
 
             //9.Return success message with MFA instructions
-            return "MFA code sent to  {user.Email}. Please verify to complete login.";
+            return $"MFA code sent to  {user.Email}. Please verify to complete login.";
         }
+
+
+
+
+
+
 
 
         public async Task<string> VerifyOtpAsync(UserOtpDTO dto)
@@ -271,6 +291,11 @@ namespace ScanBuddy.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+
+
+
+
+
         public async Task<string> ResendOtpAysnc(string email)
         {
             // 1. Validate input
@@ -310,6 +335,10 @@ namespace ScanBuddy.Services
             return "A new OTP code has been sent to your email.";
         }
 
+
+
+
+        //Method to check if the user has verified their OTP
         public async Task<bool> HasVerifiedOtpAsync(string email)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
