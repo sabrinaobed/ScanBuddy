@@ -13,7 +13,10 @@ namespace ClassLibrary.ScanBuddy.Backend.DTOs
         public string Email { get; set; }
         public string Password { get; set; }
         public string ConfirmPassword { get; set; }
+
+
         public string Role { get; set; } = "Employee"; // Default role is Employee, can be changed to Admin or SuperAdmin during registration
+        public bool EnableMfa { get; set; } = false; //enable Mfa at registartion
 
     }
 }
