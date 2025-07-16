@@ -16,7 +16,7 @@ namespace ScanBuddy.Controllers
             _authService = authService;
         }
 
-        /// Registers a new user.
+        /// Registers a new user.,
       
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] UserRegistrationDTO dto)
