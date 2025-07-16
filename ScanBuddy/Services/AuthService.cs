@@ -122,7 +122,7 @@ namespace ScanBuddy.Services
                 $"Thanks,\nScanBuddy Team";
 
 
-           // await _emailService.SendEmailAsync(newUser.Email, subject, body);
+           await _emailService.SendEmailAsync(newUser.Email, subject, body);
 
 
             //9.Return success message(dont return sensitive data)
