@@ -115,7 +115,7 @@ namespace ScanBuddy.Services
 
 
             //10.Send OTP
-            string subject = "ScanBuddy Registration -Verify Your Email";
+            string subject = "ScanBuddy Registration - Verify Your Email";
             string body = $"Hello {newUser.FullName}!,\n\n"+
                 $"Your OTP code is: {otp}\n\n" +
                 $"It is valid for 5 minutes.\n\n" +
@@ -184,6 +184,11 @@ namespace ScanBuddy.Services
                 return "Invalif email or password.";
             }
 
+            if(!user.HasVerifiedOtp)
+            {
+                return "Please verify your OTP before logging in.Check your registred email for OTP";
+            }
+
             //5.Reset failed login attempts and lockout
             user.FailedLoginAttempts = 0;
             user.LockedUntil = null;
@@ -191,19 +196,26 @@ namespace ScanBuddy.Services
 
 
             //6.Generate a random OTP for MFA
-            var otpCode = new Random().Next(100000, 999999).ToString();
+            if(user.enableMFA == true)
+            {
+                //Mfa is enabled, generate OTP and send
+                var otpCode = new Random().Next(100000, 999999).ToString();
+                user.MfaCode = otpCode; //store OTP in user model
+                user.MfaCodeExpiry = DateTime.UtcNow.AddMinutes(2); //set expiry time for OTP
+                await _context.SaveChangesAsync(); //save changes to DB
 
-            //7.Store the OTP temporarily example in memory or DB
-            //for now assume you add a property OTP and Expiry in ApplicationUser model
-            user.MfaCode = otpCode;
-            user.MfaCodeExpiry = DateTime.UtcNow.AddMinutes(2); // valif for a minute
-            await _context.SaveChangesAsync();
+                await _emailService.SendEmailAsync(user.Email, "Your ScanBuddy MFA Code", $"Your OTP code is: {otpCode}. It is valid for 2 minutes.");
 
-            //8.Send the OTP to user's email(you will implement actual email services next)
-            await _emailService.SendEmailAsync(user.Email, "Your ScanBuddy MFA Code", $"Your OTP code is: {otpCode}.");
+                return $"MFA code sent to {user.Email}. Please verify to complete login.";
+            }
+            else
+            {
+                //MFA is n ot enabled: proceed to login and return JWT
+                string token = GenerateJwtToken(user); //generate JWT token
+                return token; //return the JWT token
+            }
 
-            //9.Return success message with MFA instructions
-            return $"MFA code sent to  {user.Email}. Please verify to complete login.";
+               
         }
 
 
@@ -247,7 +259,8 @@ namespace ScanBuddy.Services
                 return "OTP code has expired. Please request a new one.";
             }
 
-            //5.OTP is valif -> clear the OTP and expiry from DB
+            //5.OTP is valid -> clear the OTP and expiry from DB
+            user.HasVerifiedOtp = true; //mark OTP as verified
             user.MfaCode = null;
             user.MfaCodeExpiry = null;
             await _context.SaveChangesAsync();
@@ -259,6 +272,12 @@ namespace ScanBuddy.Services
             //7. Return success message with token
             return token;
         }
+
+
+
+
+
+
 
 
         //Creates a JWT token containing user information
@@ -320,19 +339,42 @@ namespace ScanBuddy.Services
             // 4. Generate a new OTP
             var newOtp = new Random().Next(100000, 999999).ToString();
 
-            // 5. Store OTP and expiry
+            // 4. Determine the purpose and set OTP & expiry
+            if (!user.HasVerifiedOtp)
+            {
+                // It's for email verification
+                user.MfaCode = newOtp;
+                user.MfaCodeExpiry = DateTime.UtcNow.AddMinutes(5);
+
+                await _context.SaveChangesAsync();
+
+                await _emailService.SendEmailAsync(
+                    user.Email,
+                    "ScanBuddy Email Verification - OTP Code",
+                    $"Hello {user.FullName},\n\nYour email verification OTP is: {newOtp}.\nIt is valid for 5 minutes.\n\nThanks,\nScanBuddy Team"
+                );
+
+                return "A new email verification OTP has been sent to your inbox.";
+
+            }
+            if (!user.enableMFA)
+            {
+                return "MFA is not enabled for this account.";
+            }
+
+            // If user is verified and MFA is enabled, send MFA code
             user.MfaCode = newOtp;
             user.MfaCodeExpiry = DateTime.UtcNow.AddMinutes(2);
+
             await _context.SaveChangesAsync();
 
-            // 6. Send OTP via email
             await _emailService.SendEmailAsync(
                 user.Email,
-                "Your new ScanBuddy OTP Code",
+                "Your new ScanBuddy MFA Code",
                 $"Your new OTP code is: {newOtp}. It is valid for 2 minutes."
             );
 
-            return "A new OTP code has been sent to your email.";
+            return "A new MFA OTP code has been sent to your email.";
         }
 
 
