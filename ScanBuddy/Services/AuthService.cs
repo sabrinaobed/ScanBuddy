@@ -11,7 +11,8 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using ScanBuddy.JWTConfiguration;
-using Org.BouncyCastle.Crypto.Fpe; 
+using Org.BouncyCastle.Crypto.Fpe;
+using System.Text.Json;
 
 
 
@@ -126,20 +127,11 @@ namespace ScanBuddy.Services
 
 
             //9.Return success message(dont return sensitive data)
-            return " User regisetered successfully! Now you login to your account.";
+            return "Verify your email through the OTP code sent at your email.";
 
         }
 
-
-
-
-
-
-
-
-
-
-
+       
 
 
 
@@ -181,7 +173,7 @@ namespace ScanBuddy.Services
                     return "Too many failed attempts.Account locked for 60 seconds.";
                 }
                 await _context.SaveChangesAsync();
-                return "Invalif email or password.";
+                return "Invalid email or password.";
             }
 
             if(!user.HasVerifiedOtp)
@@ -206,7 +198,7 @@ namespace ScanBuddy.Services
 
                 await _emailService.SendEmailAsync(user.Email, "Your ScanBuddy MFA Code", $"Your OTP code is: {otpCode}. It is valid for 2 minutes.");
 
-                return $"MFA code sent to {user.Email}. Please verify to complete login.";
+                return $"MFA is enabled.OTP code sent to your registered email. Please verify to complete login.";
             }
             else
             {
@@ -221,57 +213,65 @@ namespace ScanBuddy.Services
 
 
 
-
-
-
-
-        public async Task<string> VerifyOtpAsync(UserOtpDTO dto)
+        public async Task<LoginOtpVerificationResultDTO> VerifyLoginOtpAsync(UserOtpDTO dto)
         {
-            //1. Validate input fields
+            var response = new LoginOtpVerificationResultDTO();
+
             if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.OtpCode))
             {
-                return "Email and OTP code are required";
+                response.Message = "Email and OTP code are required";
+                return response;
             }
 
-            //2.Find user by email (case-insensitive)
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
-
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
             if (user == null)
             {
-                return "Invalid email or OTP code";
+                response.Message = "Invalid email or OTP code";
+                return response;
             }
 
-            //3.Check if MFA is enabled
-            if(!user.enableMFA)
+            if (!user.enableMFA)
             {
-                return "MFA is not enabled for this account";
+                response.Message = "MFA is not enabled for this account";
+                return response;
             }
 
-            //4.Check if OTP code matches and has not expired
             if (user.MfaCode != dto.OtpCode)
             {
-                return "Incorrect OTP code.";
+                response.Message = "Incorrect OTP code.";
+                return response;
             }
 
             if (!user.MfaCodeExpiry.HasValue || user.MfaCodeExpiry < DateTime.UtcNow)
             {
-                return "OTP code has expired. Please request a new one.";
+                response.Message = "OTP code has expired. Please request a new one.";
+                return response;
             }
 
-            //5.OTP is valid -> clear the OTP and expiry from DB
-            user.HasVerifiedOtp = true; //mark OTP as verified
+            // OTP valid
+            user.HasVerifiedOtp = true;
             user.MfaCode = null;
             user.MfaCodeExpiry = null;
             await _context.SaveChangesAsync();
 
-            //6.Generate JWT token
-            string token = GenerateJwtToken(user);
+            if (user.Role.Equals("admin", StringComparison.OrdinalIgnoreCase) ||
+                user.Role.Equals("accountant", StringComparison.OrdinalIgnoreCase))
+            {
+                response.Token = GenerateJwtToken(user);
+                response.Message = "OTP verified successfully. To get authorization dashobard enter the token sent to you.";
+            }
+            else
+            {
+                response.Message = "OTP verified successfully. Login complete.";
+            }
 
-
-            //7. Return success message with token
-            return token;
+            return response;
         }
+
+
+
+
+
 
 
 
@@ -390,6 +390,66 @@ namespace ScanBuddy.Services
             return user.HasVerifiedOtp;
         }
 
+
+       
+        public async Task<string> VerifyRegistrationOtpAsync(UserOtpDTO dto)
+        {
+            var user = await _context.Users
+                 .FirstOrDefaultAsync(u => u.MfaCode == dto.OtpCode && !u.HasVerifiedOtp);
+
+            if (user == null)
+                return "Invalid OTP or already verified.";
+
+            if (!user.MfaCodeExpiry.HasValue || user.MfaCodeExpiry < DateTime.UtcNow)
+                return "OTP has expired.";
+
+            user.HasVerifiedOtp = true;
+            user.MfaCode = null;
+            user.MfaCodeExpiry = null;
+
+            await _context.SaveChangesAsync();
+
+            return "Your email has been verified. You’re now registered at ScanBuddy.";
+        }
+
+
+        //Request Password Reset
+        public async Task<string> RequestPasswordResetAsync(PasswordResetRequestDTO dto)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
+            if (user == null)
+                return "User not found.";
+
+            var token = Guid.NewGuid().ToString();
+            user.PasswordResetToken = token;
+            user.PasswordResetTokenExpiry = DateTime.UtcNow.AddMinutes(15);
+            await _context.SaveChangesAsync();
+
+            var resetLink = $"https://yourfrontend.com/reset-password?email={dto.Email}&token={token}";
+            await _emailService.SendEmailAsync(dto.Email, "Reset your password", $"Click here: {resetLink}");
+
+            return "Reset link has been sent to your email.";
+        }
+
+
+
+        //Confirm Password Reset
+        public async Task<string> ConfirmPasswordResetAsync(PasswordResetConfirmDTO dto)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.ToLower() == dto.Email.ToLower());
+            if (user == null)
+                return "Invalid request.";
+
+            if (user.PasswordResetToken != dto.Token || user.PasswordResetTokenExpiry < DateTime.UtcNow)
+                return "Invalid or expired token.";
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            user.PasswordResetToken = null;
+            user.PasswordResetTokenExpiry = null;
+            await _context.SaveChangesAsync();
+
+            return "Password has been successfully reset.";
+        }
 
 
     }

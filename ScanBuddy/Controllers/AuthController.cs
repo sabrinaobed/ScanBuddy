@@ -2,6 +2,8 @@
 using System.Threading.Tasks;
 using ClassLibrary.ScanBuddy.Backend.Interfaces;
 using ClassLibrary.ScanBuddy.Backend.DTOs;
+using System.Text.Json;
+using Microsoft.AspNetCore.Identity;
 
 namespace ScanBuddy.Controllers
 {
@@ -25,9 +27,24 @@ namespace ScanBuddy.Controllers
             return Ok(new { message = result });
         }
 
-  
+
+        /// Initiates registration and sends OTP to the user's email.
+        [HttpPost("verify-registration-otp")]
+        public async Task<IActionResult> VerifyRegistrationOtp([FromBody] UserOtpDTO dto)
+        {
+            var result = await _authService.VerifyRegistrationOtpAsync(dto);
+
+            if (result.StartsWith("Invalid") || result.StartsWith("OTP has expired"))
+            {
+                return BadRequest(new { message = result });
+            }
+
+            return Ok(new { message = result });
+        }
+
+
         /// Initiates login and sends MFA code if credentials are valid.
-      
+
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] UserLoginDTO dto)
         {
@@ -35,15 +52,25 @@ namespace ScanBuddy.Controllers
             return Ok(new { message = result });
         }
 
-        
+
         /// Verifies the MFA code and returns a JWT token if successful.
-       
-        [HttpPost("verify-otp")]
-        public async Task<IActionResult> VerifyOtp([FromBody] UserOtpDTO dto)
+
+        [HttpPost("verify-login-otp")]
+     
+        public async Task<IActionResult> VerifyLoginOtp([FromBody] UserOtpDTO dto)
         {
-            var result = await _authService.VerifyOtpAsync(dto);
-            return Ok(new { token = result });
+            var result = await _authService.VerifyLoginOtpAsync(dto);
+
+            if (!string.IsNullOrEmpty(result.Token))
+            {
+                return Ok(new { message = result.Message, token = result.Token });
+            }
+
+            return Ok(new { message = result.Message });
         }
+
+
+
 
         ///Resends a new MFA code to the users email
         [HttpPost("resend-otp")]
@@ -61,6 +88,21 @@ namespace ScanBuddy.Controllers
             return Ok(new { IsVerified = isVerified });
         }
 
+        //Password Reset 
+        [HttpPost("request-password-reset")]
+        public async Task<IActionResult> RequestPasswordReset([FromBody] PasswordResetRequestDTO dto)
+        {
+            var result = await _authService.RequestPasswordResetAsync(dto);
+            return Ok(result);
+        }
+
+        //Confirm Password Reset
+        [HttpPost("confirm-password-reset")]
+        public async Task<IActionResult> ConfirmPasswordReset([FromBody] PasswordResetConfirmDTO dto)
+        {
+            var result = await _authService.ConfirmPasswordResetAsync(dto);
+            return Ok(result);
+        }
 
     }
 }

@@ -35,6 +35,10 @@ namespace ScanBuddy.Models
         public bool HasVerifiedOtp { get; set; } = false;
 
         public string AccountType { get; set; } = "Personal"; //to select accoutn type
+
+        public string? PasswordResetToken { get; set; }
+        public DateTime? PasswordResetTokenExpiry { get; set; }
+
     }
 
 }
