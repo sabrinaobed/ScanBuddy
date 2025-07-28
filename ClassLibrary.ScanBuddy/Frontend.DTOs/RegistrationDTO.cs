@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace ClassLibrary.ScanBuddy.Frontend.DTOs
 {
-    public  class RegistrationDTO
+    public class RegistrationDTO
     {
+        public string Email{ get; set; }
+        public string Password { get; set; }
+        public string ConfirmPassword { get; set; }
     }
 }
