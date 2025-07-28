@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScanBuddy", "ScanBuddy\Scan
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassLibrary.ScanBuddy", "ClassLibrary.ScanBuddy\ClassLibrary.ScanBuddy.csproj", "{34AB98EC-8730-488C-B23F-57B443551FAF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScanBuddy.Client", "ScanBuddy.Client\ScanBuddy.Client.csproj", "{DC17E4B1-9995-40B7-BA2E-72989DD8DA4F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{34AB98EC-8730-488C-B23F-57B443551FAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{34AB98EC-8730-488C-B23F-57B443551FAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{34AB98EC-8730-488C-B23F-57B443551FAF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC17E4B1-9995-40B7-BA2E-72989DD8DA4F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC17E4B1-9995-40B7-BA2E-72989DD8DA4F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC17E4B1-9995-40B7-BA2E-72989DD8DA4F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC17E4B1-9995-40B7-BA2E-72989DD8DA4F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
