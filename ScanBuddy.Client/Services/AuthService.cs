@@ -15,17 +15,35 @@ namespace ScanBuddy.Client.Services
             _http = http;
         }
 
-        public async Task<string> RegisterAsync(RegistrationDTO dto)
+        public async Task<ApiResponse> RegisterAsync(RegistrationDTO dto)
         {
             var response = await _http.PostAsJsonAsync("auth/register", dto);
-            return await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                return apiResponse!;
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            return new ApiResponse { Success = false, Message = error };
         }
 
-        public async Task<string> VerifyRegistrationOtpAsync(VerifyRegistrationOtpDTO dto)
+
+        public async Task<ApiResponse> VerifyRegistrationOtpAsync(VerifyRegistrationOtpDTO dto)
         {
             var response = await _http.PostAsJsonAsync("auth/verify-registration-otp", dto);
-            return await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                var apiResponse = await response.Content.ReadFromJsonAsync<ApiResponse>();
+                return apiResponse!;
+            }
+
+            var error = await response.Content.ReadAsStringAsync();
+            return new ApiResponse { Success = false, Message = error };
         }
+
 
         public async Task<string> LoginAsync(LoginDTO dto)
         {

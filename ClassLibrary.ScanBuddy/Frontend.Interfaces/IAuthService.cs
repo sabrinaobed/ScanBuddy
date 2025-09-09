@@ -9,9 +9,9 @@ namespace ClassLibrary.ScanBuddy.Frontend.Interfaces
 {
     public  interface IAuthService
     {
-        Task<string> RegisterAsync(RegistrationDTO dto);
+        Task<ApiResponse> RegisterAsync(RegistrationDTO dto);
 
-        Task<string> VerifyRegistrationOtpAsync(VerifyRegistrationOtpDTO dto);
+        Task<ApiResponse> VerifyRegistrationOtpAsync(VerifyRegistrationOtpDTO dto);
 
         Task<string> LoginAsync(LoginDTO dto);
 
