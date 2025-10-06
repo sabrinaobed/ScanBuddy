@@ -43,10 +43,7 @@ namespace ScanBuddy.Context
         //This method is called by the framework to configure the model when the database is created
         protected override void OnModelCreating(ModelBuilder modelBuilder) //(This lets you define rules like:Which columns are unique,Relationships between tables,Table/column names if you want to customize them)
         {
-            //Make the UserName property unique in the database to prevent duplication
-            modelBuilder.Entity<ApplicationUser>()
-                .HasIndex(u => u.FullName)
-                .IsUnique();
+            
 
             //Make the Email property unique in the database to prevent duplication
             modelBuilder.Entity<ApplicationUser>()
