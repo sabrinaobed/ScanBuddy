@@ -11,7 +11,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using ScanBuddy.JWTConfiguration;
-using Org.BouncyCastle.Crypto.Fpe;
 using System.Text.Json;
 
 
