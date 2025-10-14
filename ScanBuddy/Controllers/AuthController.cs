@@ -114,7 +114,7 @@ namespace ScanBuddy.Controllers
         [HttpPost("resend-otp")]
         public async Task<IActionResult> ResendOtp([FromBody] ResendOtpDto dto)
         {
-            var result = await _authService.ResendOtpAysnc(dto.Email);
+            var result = await _authService.ResendOtpAsync(dto.Email);
 
             var ok = !(result.StartsWith("Invalid", System.StringComparison.OrdinalIgnoreCase) ||
                        result.StartsWith("MFA is not enabled", System.StringComparison.OrdinalIgnoreCase) ||

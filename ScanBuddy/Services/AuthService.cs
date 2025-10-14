@@ -257,7 +257,7 @@ namespace ScanBuddy.Services
 
         // ---------------- Resend OTP ----------------
 
-        public async Task<string> ResendOtpAysnc(string email)
+        public async Task<string> ResendOtpAsync(string email)
         {
             if (string.IsNullOrWhiteSpace(email)) return "Email is required.";
 
