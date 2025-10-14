@@ -35,7 +35,8 @@ builder.Services.AddCors(options =>
             "http://localhost:5001"
         )
         .AllowAnyHeader()
-        .AllowAnyMethod();
+        .AllowAnyMethod()
+        .AllowCredentials(); // If you need to send cookies or auth headers
     });
 });
 
@@ -129,7 +130,7 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.SecretKey)),
 
         //add a small tolerance for clock drift
-        ClockSkew = TimeSpan.FromSeconds(30) // No tolerance for token expiration
+        ClockSkew = TimeSpan.FromSeconds(30) 
     };
 });
 
